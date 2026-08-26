@@ -1,0 +1,50 @@
+name: Rename BarberOne to Navora
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace legacy brand references
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          replacements = {
+              'BarberOne': 'Navora',
+              'BARBERONE': 'NAVORA',
+              'barberone': 'navora',
+              'B1': 'N',
+          }
+          for path in Path('.').rglob('*'):
+              if not path.is_file() or '.git' in path.parts:
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except (UnicodeDecodeError, OSError):
+                  continue
+              new = text
+              for old, value in replacements.items():
+                  new = new.replace(old, value)
+              if new != text:
+                  path.write_text(new, encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'refactor: rename BarberOne to Navora'
+          git push
+          rm -f .github/workflows/rename-navora.yml
+          git add -A
+          git commit -m 'chore: remove one-time rename workflow'
+          git push
