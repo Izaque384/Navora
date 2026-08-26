@@ -23,13 +23,11 @@ jobs:
               'barberone': 'navora',
               'B1': 'N',
           }
-          for path in Path('.').rglob('*'):
-              if not path.is_file() or '.git' in path.parts:
+          for name in ['index(1).html', 'package(1).json']:
+              path = Path(name)
+              if not path.exists():
                   continue
-              try:
-                  text = path.read_text(encoding='utf-8')
-              except (UnicodeDecodeError, OSError):
-                  continue
+              text = path.read_text(encoding='utf-8')
               new = text
               for old, value in replacements.items():
                   new = new.replace(old, value)
@@ -38,13 +36,9 @@ jobs:
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add 'index(1).html' 'package(1).json'
           if git diff --cached --quiet; then
             exit 0
           fi
           git commit -m 'refactor: rename BarberOne to Navora'
-          git push
-          rm -f .github/workflows/rename-navora.yml
-          git add -A
-          git commit -m 'chore: remove one-time rename workflow'
           git push
