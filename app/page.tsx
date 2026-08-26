@@ -12,12 +12,7 @@ const professionals = ['Lucas Mendes', 'Rafael Costa'];
 const times = ['09:00', '09:45', '10:30', '11:15', '14:00', '14:45', '15:30', '16:15', '17:00'];
 
 function RazorMark({ size = 34 }: { size?: number }) {
-  return (
-    <svg className="razor-mark" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M10 10 35 35M35 35 54 54M35 35 14 54M35 35 54 14" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
-      <circle cx="35" cy="35" r="4.5" fill="currentColor" />
-    </svg>
-  );
+  return <img className="razor-mark" src="/navora-mark.svg" width={size} height={size} alt="" aria-hidden="true" />;
 }
 
 function Icon({ name }: { name: string }) {
@@ -50,7 +45,7 @@ export default function Home() {
     <div className="app">
       <header className="top">
         <button className="brand" onClick={() => setView('home')} aria-label="Ir para o início">
-          <span className="brand-mark"><RazorMark size={30} /></span><span>NAVORA</span>
+          <span className="brand-mark"><RazorMark size={31} /></span><span>NAVORA</span>
         </button>
         <span className="tag">A agenda que acompanha seu estilo.</span>
         <div className="top-actions"><button className="link" onClick={() => setView('dashboard')}>Painel</button><button className="button secondary" onClick={startBooking}>Agendar</button></div>
@@ -78,7 +73,7 @@ export default function Home() {
 
       {view === 'dashboard' && <main className="dashboard">
         <aside className="nav">
-          <div className="nav-brand"><RazorMark size={28} /><span>NAVORA</span></div>
+          <div className="nav-brand"><RazorMark size={30} /><span>NAVORA</span></div>
           <nav><button className="active"><Icon name="home" />Visão geral</button><button><Icon name="calendar" />Agenda</button><button><Icon name="users" />Clientes</button><button><Icon name="scissors" />Serviços</button><button><Icon name="users" />Profissionais</button><button><Icon name="money" />Financeiro</button><button><Icon name="chart" />Relatórios</button><button><Icon name="settings" />Configurações</button></nav>
           <div className="profile"><span className="profile-avatar">B</span><div><b>Barbearia Elite</b><small>Administrador</small></div><span>⌄</span></div>
         </aside>
