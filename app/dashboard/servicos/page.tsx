@@ -8,6 +8,7 @@ function money(value: number) {
 
 export default async function ServicesPage() {
   const { supabase, membership, barbershop } = await getCurrentShop();
+  const canManage = membership.role === 'owner' || membership.role === 'admin';
   const { data: services } = await supabase
     .from('services')
     .select('id, name, description, duration_min, price, active')
@@ -26,7 +27,7 @@ export default async function ServicesPage() {
       <div className="management-grid">
         <section className="section-card form-card">
           <div className="section-head"><div><h2>Novo serviço</h2><p className="caption">Esses dados serão usados na agenda.</p></div></div>
-          <form action={submitService} className="admin-form">
+          {canManage ? <form action={submitService} className="admin-form">
             <label>Nome<input name="name" required placeholder="Ex.: Corte clássico" /></label>
             <label>Descrição<textarea name="description" rows={3} placeholder="Detalhes opcionais" /></label>
             <div className="form-row">
@@ -34,7 +35,7 @@ export default async function ServicesPage() {
               <label>Preço (R$)<input name="price" type="number" min="0" step="0.01" required placeholder="45,00" /></label>
             </div>
             <button className="button full" type="submit">Adicionar serviço</button>
-          </form>
+          </form> : <p className="empty-state compact">Seu perfil possui acesso somente de leitura ao catálogo.</p>}
         </section>
         <section className="section-card list-card">
           <div className="section-head"><div><h2>Serviços cadastrados</h2><p className="caption">{services?.length ?? 0} item(ns)</p></div></div>

@@ -21,7 +21,10 @@ export async function createService(formData: FormData) {
     return { ok: false, error: 'Dados do serviço inválidos.' };
   }
 
-  const { supabase, barbershop } = await getCurrentShop();
+  const { supabase, membership, barbershop } = await getCurrentShop();
+  if (!['owner', 'admin'].includes(membership.role)) {
+    return { ok: false, error: 'Somente proprietários e administradores podem cadastrar serviços.' };
+  }
   const { error } = await supabase.from('services').insert({
     barbershop_id: barbershop.id,
     name,
@@ -40,7 +43,10 @@ export async function createProfessional(formData: FormData) {
   const specialty = text(formData, 'specialty') || null;
   if (!name) return { ok: false, error: 'Informe o nome do profissional.' };
 
-  const { supabase, barbershop } = await getCurrentShop();
+  const { supabase, membership, barbershop } = await getCurrentShop();
+  if (!['owner', 'admin'].includes(membership.role)) {
+    return { ok: false, error: 'Somente proprietários e administradores podem cadastrar profissionais.' };
+  }
   const { error } = await supabase.from('professionals').insert({
     barbershop_id: barbershop.id,
     name,

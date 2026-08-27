@@ -1,9 +1,11 @@
+import Link from 'next/link';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { getCurrentShop } from '@/lib/navora/current-shop';
 import { createProfessional } from '../actions';
 
 export default async function ProfessionalsPage() {
   const { supabase, membership, barbershop } = await getCurrentShop();
+  const canManage = membership.role === 'owner' || membership.role === 'admin';
   const { data: professionals } = await supabase
     .from('professionals')
     .select('id, name, specialty, active, created_at')
@@ -22,11 +24,11 @@ export default async function ProfessionalsPage() {
       <div className="management-grid">
         <section className="section-card form-card">
           <div className="section-head"><div><h2>Novo profissional</h2><p className="caption">O profissional ficará disponível para a agenda.</p></div></div>
-          <form action={submitProfessional} className="admin-form">
+          {canManage ? <form action={submitProfessional} className="admin-form">
             <label>Nome<input name="name" required placeholder="Ex.: Lucas Mendes" /></label>
             <label>Especialidade<input name="specialty" placeholder="Ex.: Corte e barba" /></label>
             <button className="button full" type="submit">Adicionar profissional</button>
-          </form>
+          </form> : <p className="empty-state compact">Seu perfil possui acesso somente de leitura à equipe.</p>}
         </section>
         <section className="section-card list-card">
           <div className="section-head"><div><h2>Equipe cadastrada</h2><p className="caption">{professionals?.length ?? 0} profissional(is)</p></div></div>
@@ -35,7 +37,7 @@ export default async function ProfessionalsPage() {
             {(professionals ?? []).map((professional) => (
               <div className="data-row" key={professional.id}>
                 <div className="person-line"><span className="profile-mini">{professional.name.slice(0, 2).toUpperCase()}</span><div><b>{professional.name}</b><small>{professional.specialty || 'Sem especialidade definida'}</small></div></div>
-                <span className={`status ${professional.active ? 'is-active' : ''}`}>{professional.active ? 'Ativo' : 'Inativo'}</span>
+                <div className="professional-row-actions"><span className={`status ${professional.active ? 'is-active' : ''}`}>{professional.active ? 'Ativo' : 'Inativo'}</span><Link href={`/dashboard/profissionais/${professional.id}`}>Configurar</Link></div>
               </div>
             ))}
           </div>
