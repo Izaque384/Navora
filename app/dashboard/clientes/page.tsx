@@ -10,13 +10,18 @@ export default async function CustomersPage() {
     .eq('barbershop_id', barbershop.id)
     .order('created_at', { ascending: false });
 
+  async function submitCustomer(formData: FormData) {
+    'use server';
+    await createCustomer(formData);
+  }
+
   return (
     <DashboardShell shopName={barbershop.name} role={membership.role} active="clientes">
       <div className="dashhead"><div><div className="eyebrow">RELACIONAMENTO</div><h1>Clientes</h1><p>Centralize os contatos usados nos agendamentos da barbearia.</p></div></div>
       <div className="management-grid">
         <section className="section-card form-card">
           <div className="section-head"><div><h2>Novo cliente</h2><p className="caption">Telefone e nome são obrigatórios.</p></div></div>
-          <form action={createCustomer} className="admin-form">
+          <form action={submitCustomer} className="admin-form">
             <label>Nome<input name="name" required placeholder="Nome completo" /></label>
             <label>WhatsApp<input name="phone" required placeholder="(00) 00000-0000" /></label>
             <label>E-mail<input name="email" type="email" placeholder="cliente@email.com" /></label>
