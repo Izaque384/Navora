@@ -11,13 +11,18 @@ export default async function ProfessionalsPage() {
     .order('active', { ascending: false })
     .order('name');
 
+  async function submitProfessional(formData: FormData) {
+    'use server';
+    await createProfessional(formData);
+  }
+
   return (
     <DashboardShell shopName={barbershop.name} role={membership.role} active="profissionais">
       <div className="dashhead"><div><div className="eyebrow">EQUIPE</div><h1>Profissionais</h1><p>Monte a equipe que poderá receber agendamentos no Navora.</p></div></div>
       <div className="management-grid">
         <section className="section-card form-card">
           <div className="section-head"><div><h2>Novo profissional</h2><p className="caption">O profissional ficará disponível para a agenda.</p></div></div>
-          <form action={createProfessional} className="admin-form">
+          <form action={submitProfessional} className="admin-form">
             <label>Nome<input name="name" required placeholder="Ex.: Lucas Mendes" /></label>
             <label>Especialidade<input name="specialty" placeholder="Ex.: Corte e barba" /></label>
             <button className="button full" type="submit">Adicionar profissional</button>
