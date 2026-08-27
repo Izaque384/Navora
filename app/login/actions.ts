@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
@@ -31,11 +32,19 @@ export async function signup(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent('A senha precisa ter pelo menos 8 caracteres.')}`);
   }
 
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
+  const protocol = requestHeaders.get('x-forwarded-proto') ?? 'https';
+  const origin = host ? `${protocol}://${host}` : 'https://navorax.vercel.app';
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: `${origin}/auth/callback`,
+    },
   });
 
   if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
