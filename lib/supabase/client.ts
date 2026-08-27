@@ -1,13 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
 
 export function createClient() {
-  const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !key) {
-    throw new Error("Supabase environment variables are not configured.");
-  }
-
-  return createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL, key);
+  return createBrowserClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 }
