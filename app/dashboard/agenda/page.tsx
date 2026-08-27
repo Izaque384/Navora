@@ -1,4 +1,5 @@
 import { DashboardShell } from '@/components/dashboard-shell';
+import { AppointmentForm } from '@/components/appointment-form';
 import { getCurrentShop } from '@/lib/navora/current-shop';
 import { createAppointment, updateAppointmentStatus } from '../actions';
 
@@ -44,14 +45,13 @@ export default async function AgendaPage() {
           {!canCreate ? (
             <div className="empty-state compact">Cadastre pelo menos um cliente, serviço e profissional antes de agendar.</div>
           ) : (
-            <form action={submitAppointment} className="admin-form">
-              <label>Cliente<select name="customerId" required defaultValue=""><option value="" disabled>Selecione</option>{customers.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.phone}</option>)}</select></label>
-              <label>Serviço<select name="serviceId" required defaultValue=""><option value="" disabled>Selecione</option>{services.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.duration_min} min</option>)}</select></label>
-              <label>Profissional<select name="professionalId" required defaultValue=""><option value="" disabled>Selecione</option>{professionals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label>Data e horário<input type="datetime-local" name="startAt" required /></label>
-              <label>Observações<textarea name="notes" rows={3} placeholder="Opcional" /></label>
-              <button className="button full" type="submit">Criar agendamento</button>
-            </form>
+            <AppointmentForm
+              customers={customers}
+              services={services}
+              professionals={professionals}
+              timezone={barbershop.timezone}
+              submitAction={submitAppointment}
+            />
           )}
         </section>
         <section className="section-card list-card">

@@ -9,7 +9,7 @@ export async function getCurrentShop() {
 
   const { data: membership } = await supabase
     .from('barbershop_members')
-    .select('barbershop_id, role, barbershops(id, name, slug)')
+    .select('barbershop_id, role, barbershops(id, name, slug, timezone, slot_interval_min, public_booking_enabled)')
     .eq('user_id', userId)
     .limit(1)
     .maybeSingle();

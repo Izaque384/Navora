@@ -80,23 +80,26 @@ export async function createAppointment(formData: FormData) {
     return { ok: false, error: 'Preencha profissional, serviço, cliente e horário.' };
   }
 
-  // datetime-local has no timezone. Navora currently operates in Brazil/São Paulo,
-  // so normalize the wall-clock value to BRT before storing it as UTC in Postgres.
-  const normalizedStart = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(startAtRaw)
-    ? `${startAtRaw}:00-03:00`
-    : startAtRaw;
-  const startAt = new Date(normalizedStart);
+  const startAt = new Date(startAtRaw);
   if (Number.isNaN(startAt.getTime())) return { ok: false, error: 'Horário inválido.' };
 
   const { supabase, barbershop } = await getCurrentShop();
-  const { data: service, error: serviceError } = await supabase
-    .from('services')
-    .select('duration_min')
-    .eq('id', serviceId)
-    .eq('barbershop_id', barbershop.id)
-    .single();
+  const [{ data: service, error: serviceError }, customerResult, slotsResult] = await Promise.all([
+    supabase.from('services').select('duration_min').eq('id', serviceId).eq('barbershop_id', barbershop.id).eq('active', true).single(),
+    supabase.from('customers').select('id').eq('id', customerId).eq('barbershop_id', barbershop.id).single(),
+    supabase.rpc('get_available_appointment_slots', {
+      p_barbershop_id: barbershop.id,
+      p_professional_id: professionalId,
+      p_service_id: serviceId,
+      p_date: new Intl.DateTimeFormat('en-CA', { timeZone: barbershop.timezone }).format(startAt),
+    }),
+  ]);
 
   if (serviceError || !service) return { ok: false, error: 'Serviço inválido.' };
+  if (customerResult.error || !customerResult.data) return { ok: false, error: 'Cliente inválido.' };
+  if (slotsResult.error) return { ok: false, error: 'Não foi possível validar a disponibilidade.' };
+  const selectedSlot = (slotsResult.data ?? []).find((slot: { start_at: string }) => new Date(slot.start_at).getTime() === startAt.getTime());
+  if (!selectedSlot) return { ok: false, error: 'Esse horário não está mais disponível.' };
   const endAt = new Date(startAt.getTime() + service.duration_min * 60_000);
 
   const { error } = await supabase.from('appointments').insert({
@@ -115,6 +118,36 @@ export async function createAppointment(formData: FormData) {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/agenda');
   return { ok: true };
+}
+
+type AvailabilityInput = {
+  professionalId: string;
+  serviceId: string;
+  date: string;
+};
+
+export async function getAvailableAppointmentSlots(input: AvailabilityInput) {
+  if (!/^[0-9a-f-]{36}$/i.test(input.professionalId) || !/^[0-9a-f-]{36}$/i.test(input.serviceId) || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+    return { ok: false as const, error: 'Seleção inválida.', slots: [] };
+  }
+
+  const { supabase, barbershop } = await getCurrentShop();
+  const { data, error } = await supabase.rpc('get_available_appointment_slots', {
+      p_barbershop_id: barbershop.id,
+      p_professional_id: input.professionalId,
+      p_service_id: input.serviceId,
+      p_date: input.date,
+    });
+
+  if (error) return { ok: false as const, error: 'Não foi possível consultar os horários.', slots: [] };
+  const formatter = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: barbershop.timezone });
+  const slots = (data ?? []).map((slot: { start_at: string; end_at: string }) => ({
+    startAt: slot.start_at,
+    endAt: slot.end_at,
+    label: formatter.format(new Date(slot.start_at)),
+  }));
+
+  return { ok: true as const, slots };
 }
 
 export async function updateAppointmentStatus(formData: FormData) {
