@@ -80,7 +80,12 @@ export async function createAppointment(formData: FormData) {
     return { ok: false, error: 'Preencha profissional, serviço, cliente e horário.' };
   }
 
-  const startAt = new Date(startAtRaw);
+  // datetime-local has no timezone. Navora currently operates in Brazil/São Paulo,
+  // so normalize the wall-clock value to BRT before storing it as UTC in Postgres.
+  const normalizedStart = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(startAtRaw)
+    ? `${startAtRaw}:00-03:00`
+    : startAtRaw;
+  const startAt = new Date(normalizedStart);
   if (Number.isNaN(startAt.getTime())) return { ok: false, error: 'Horário inválido.' };
 
   const { supabase, barbershop } = await getCurrentShop();
