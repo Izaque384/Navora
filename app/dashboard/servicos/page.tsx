@@ -15,13 +15,18 @@ export default async function ServicesPage() {
     .order('active', { ascending: false })
     .order('name');
 
+  async function submitService(formData: FormData) {
+    'use server';
+    await createService(formData);
+  }
+
   return (
     <DashboardShell shopName={barbershop.name} role={membership.role} active="servicos">
       <div className="dashhead"><div><div className="eyebrow">CATÁLOGO</div><h1>Serviços</h1><p>Cadastre o que sua barbearia oferece, com duração e preço reais.</p></div></div>
       <div className="management-grid">
         <section className="section-card form-card">
           <div className="section-head"><div><h2>Novo serviço</h2><p className="caption">Esses dados serão usados na agenda.</p></div></div>
-          <form action={createService} className="admin-form">
+          <form action={submitService} className="admin-form">
             <label>Nome<input name="name" required placeholder="Ex.: Corte clássico" /></label>
             <label>Descrição<textarea name="description" rows={3} placeholder="Detalhes opcionais" /></label>
             <div className="form-row">
