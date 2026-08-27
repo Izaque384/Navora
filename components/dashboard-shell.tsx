@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 type DashboardShellProps = {
   shopName: string;
   role: string;
-  active: 'overview' | 'agenda' | 'clientes' | 'servicos' | 'profissionais';
+  active: 'overview' | 'agenda' | 'clientes' | 'servicos' | 'profissionais' | 'configuracoes';
   children: ReactNode;
 };
 
@@ -14,6 +14,7 @@ const items = [
   ['clientes', '/dashboard/clientes', 'Clientes'],
   ['servicos', '/dashboard/servicos', 'Serviços'],
   ['profissionais', '/dashboard/profissionais', 'Profissionais'],
+  ['configuracoes', '/dashboard/configuracoes', 'Configurações'],
 ] as const;
 
 export function DashboardShell({ shopName, role, active, children }: DashboardShellProps) {
