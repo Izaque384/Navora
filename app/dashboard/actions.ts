@@ -130,20 +130,24 @@ type AvailabilityInput = {
   professionalId: string;
   serviceId: string;
   date: string;
+  appointmentId?: string;
 };
 
 export async function getAvailableAppointmentSlots(input: AvailabilityInput) {
-  if (!/^[0-9a-f-]{36}$/i.test(input.professionalId) || !/^[0-9a-f-]{36}$/i.test(input.serviceId) || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+  if (!/^[0-9a-f-]{36}$/i.test(input.professionalId) || !/^[0-9a-f-]{36}$/i.test(input.serviceId) || (input.appointmentId && !/^[0-9a-f-]{36}$/i.test(input.appointmentId)) || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
     return { ok: false as const, error: 'Seleção inválida.', slots: [] };
   }
 
   const { supabase, barbershop } = await getCurrentShop();
-  const { data, error } = await supabase.rpc('get_available_appointment_slots', {
+  const rpcName = input.appointmentId ? 'get_reschedule_appointment_slots' : 'get_available_appointment_slots';
+  const rpcParams = {
       p_barbershop_id: barbershop.id,
       p_professional_id: input.professionalId,
       p_service_id: input.serviceId,
       p_date: input.date,
-    });
+      ...(input.appointmentId ? { p_appointment_id: input.appointmentId } : {}),
+    };
+  const { data, error } = await supabase.rpc(rpcName, rpcParams);
 
   if (error) return { ok: false as const, error: 'Não foi possível consultar os horários.', slots: [] };
   const formatter = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: barbershop.timezone });
@@ -169,6 +173,68 @@ export async function updateAppointmentStatus(formData: FormData) {
     .eq('id', appointmentId)
     .eq('barbershop_id', barbershop.id);
 
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/agenda');
+  return { ok: true };
+}
+
+export async function updateAppointment(formData: FormData) {
+  const appointmentId = text(formData, 'appointmentId');
+  const professionalId = text(formData, 'professionalId');
+  const serviceId = text(formData, 'serviceId');
+  const customerId = text(formData, 'customerId');
+  const startAtRaw = text(formData, 'startAt');
+  const notes = text(formData, 'notes') || null;
+  if (!appointmentId || !professionalId || !serviceId || !customerId || !startAtRaw) {
+    return { ok: false, error: 'Preencha todos os dados obrigatórios.' };
+  }
+
+  const startAt = new Date(startAtRaw);
+  if (Number.isNaN(startAt.getTime())) return { ok: false, error: 'Horário inválido.' };
+
+  const { supabase, barbershop } = await getCurrentShop();
+  const appointmentResult = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('id', appointmentId)
+    .eq('barbershop_id', barbershop.id)
+    .single();
+  if (appointmentResult.error) return { ok: false, error: 'Agendamento não encontrado.' };
+
+  const [{ data: service }, customerResult, slotsResult] = await Promise.all([
+    supabase.from('services').select('duration_min').eq('id', serviceId).eq('barbershop_id', barbershop.id).eq('active', true).single(),
+    supabase.from('customers').select('id').eq('id', customerId).eq('barbershop_id', barbershop.id).single(),
+    supabase.rpc('get_reschedule_appointment_slots', {
+      p_barbershop_id: barbershop.id,
+      p_appointment_id: appointmentId,
+      p_professional_id: professionalId,
+      p_service_id: serviceId,
+      p_date: new Intl.DateTimeFormat('en-CA', { timeZone: barbershop.timezone }).format(startAt),
+    }),
+  ]);
+
+  if (!service) return { ok: false, error: 'Serviço inválido.' };
+  if (customerResult.error) return { ok: false, error: 'Cliente inválido.' };
+  if (slotsResult.error) return { ok: false, error: 'Não foi possível validar a disponibilidade.' };
+  const slotIsAvailable = (slotsResult.data ?? []).some((slot: { start_at: string }) => new Date(slot.start_at).getTime() === startAt.getTime());
+  if (!slotIsAvailable) return { ok: false, error: 'Esse horário não está mais disponível.' };
+
+  const endAt = new Date(startAt.getTime() + service.duration_min * 60_000);
+  const { error } = await supabase
+    .from('appointments')
+    .update({
+      professional_id: professionalId,
+      service_id: serviceId,
+      customer_id: customerId,
+      start_at: startAt.toISOString(),
+      end_at: endAt.toISOString(),
+      notes,
+    })
+    .eq('id', appointmentId)
+    .eq('barbershop_id', barbershop.id);
+
+  if (error?.code === '23P01') return { ok: false, error: 'Esse profissional já possui um atendimento nesse horário.' };
   if (error) return { ok: false, error: error.message };
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/agenda');

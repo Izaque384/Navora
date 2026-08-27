@@ -1,7 +1,8 @@
 import { DashboardShell } from '@/components/dashboard-shell';
 import { AppointmentForm } from '@/components/appointment-form';
+import { AppointmentEditor } from '@/components/appointment-editor';
 import { getCurrentShop } from '@/lib/navora/current-shop';
-import { createAppointment, updateAppointmentStatus } from '../actions';
+import { createAppointment, updateAppointment, updateAppointmentStatus } from '../actions';
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: 'Agendado',
@@ -14,7 +15,7 @@ const statusLabels: Record<string, string> = {
 export default async function AgendaPage() {
   const { supabase, membership, barbershop } = await getCurrentShop();
   const [appointmentsResult, customersResult, servicesResult, professionalsResult] = await Promise.all([
-    supabase.from('appointments').select('id, start_at, end_at, status, notes, customers(name), services(name), professionals(name)').eq('barbershop_id', barbershop.id).order('start_at').limit(80),
+    supabase.from('appointments').select('id, customer_id, service_id, professional_id, start_at, end_at, status, notes, customers(name), services(name), professionals(name)').eq('barbershop_id', barbershop.id).order('start_at').limit(80),
     supabase.from('customers').select('id, name, phone').eq('barbershop_id', barbershop.id).order('name'),
     supabase.from('services').select('id, name, duration_min').eq('barbershop_id', barbershop.id).eq('active', true).order('name'),
     supabase.from('professionals').select('id, name').eq('barbershop_id', barbershop.id).eq('active', true).order('name'),
@@ -34,6 +35,11 @@ export default async function AgendaPage() {
   async function submitStatus(formData: FormData) {
     'use server';
     await updateAppointmentStatus(formData);
+  }
+
+  async function submitUpdate(formData: FormData) {
+    'use server';
+    return updateAppointment(formData);
   }
 
   return (
@@ -65,15 +71,18 @@ export default async function AgendaPage() {
               const date = new Date(appointment.start_at);
               return (
                 <div className="agenda-row" key={appointment.id}>
-                  <div className="agenda-date"><strong>{date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' })}</strong><span>{date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span></div>
+                  <div className="agenda-date"><strong>{date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: barbershop.timezone })}</strong><span>{date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: barbershop.timezone })}</span></div>
                   <div className="agenda-person"><b>{customer?.name ?? 'Cliente'}</b><small>{service?.name ?? 'Serviço'} · {professional?.name ?? 'Profissional'}</small>{appointment.notes && <small>{appointment.notes}</small>}</div>
-                  <form action={submitStatus} className="status-form">
-                    <input type="hidden" name="appointmentId" value={appointment.id} />
-                    <select name="status" defaultValue={appointment.status} aria-label="Status do agendamento">
-                      {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                    </select>
-                    <button type="submit">Salvar</button>
-                  </form>
+                  <div className="appointment-actions">
+                    <form action={submitStatus} className="status-form">
+                      <input type="hidden" name="appointmentId" value={appointment.id} />
+                      <select name="status" defaultValue={appointment.status} aria-label="Status do agendamento">
+                        {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                      </select>
+                      <button type="submit">Salvar</button>
+                    </form>
+                    <AppointmentEditor appointment={{ id: appointment.id, customerId: appointment.customer_id, serviceId: appointment.service_id, professionalId: appointment.professional_id, startAt: appointment.start_at, notes: appointment.notes }} customers={customers} services={services} professionals={professionals} timezone={barbershop.timezone} updateAction={submitUpdate} />
+                  </div>
                 </div>
               );
             })}
