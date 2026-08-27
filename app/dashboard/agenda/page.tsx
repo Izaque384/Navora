@@ -25,6 +25,16 @@ export default async function AgendaPage() {
   const professionals = professionalsResult.data ?? [];
   const canCreate = customers.length > 0 && services.length > 0 && professionals.length > 0;
 
+  async function submitAppointment(formData: FormData) {
+    'use server';
+    await createAppointment(formData);
+  }
+
+  async function submitStatus(formData: FormData) {
+    'use server';
+    await updateAppointmentStatus(formData);
+  }
+
   return (
     <DashboardShell shopName={barbershop.name} role={membership.role} active="agenda">
       <div className="dashhead"><div><div className="eyebrow">OPERAÇÃO</div><h1>Agenda</h1><p>Crie atendimentos e acompanhe o status de cada horário.</p></div></div>
@@ -34,7 +44,7 @@ export default async function AgendaPage() {
           {!canCreate ? (
             <div className="empty-state compact">Cadastre pelo menos um cliente, serviço e profissional antes de agendar.</div>
           ) : (
-            <form action={createAppointment} className="admin-form">
+            <form action={submitAppointment} className="admin-form">
               <label>Cliente<select name="customerId" required defaultValue=""><option value="" disabled>Selecione</option>{customers.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.phone}</option>)}</select></label>
               <label>Serviço<select name="serviceId" required defaultValue=""><option value="" disabled>Selecione</option>{services.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.duration_min} min</option>)}</select></label>
               <label>Profissional<select name="professionalId" required defaultValue=""><option value="" disabled>Selecione</option>{professionals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
@@ -57,7 +67,7 @@ export default async function AgendaPage() {
                 <div className="agenda-row" key={appointment.id}>
                   <div className="agenda-date"><strong>{date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' })}</strong><span>{date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</span></div>
                   <div className="agenda-person"><b>{customer?.name ?? 'Cliente'}</b><small>{service?.name ?? 'Serviço'} · {professional?.name ?? 'Profissional'}</small>{appointment.notes && <small>{appointment.notes}</small>}</div>
-                  <form action={updateAppointmentStatus} className="status-form">
+                  <form action={submitStatus} className="status-form">
                     <input type="hidden" name="appointmentId" value={appointment.id} />
                     <select name="status" defaultValue={appointment.status} aria-label="Status do agendamento">
                       {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
