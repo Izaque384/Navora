@@ -11,6 +11,24 @@ function getRequired(formData: FormData, key: string) {
   return value;
 }
 
+function signupErrorMessage(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('email rate limit exceeded')) {
+    return 'O limite temporário de e-mails de confirmação do Supabase foi atingido. Aguarde alguns minutos ou configure um SMTP próprio no projeto Navora.';
+  }
+
+  if (normalized.includes('email address not authorized')) {
+    return 'Este endereço não está autorizado pelo SMTP de testes do Supabase. Configure um SMTP próprio para liberar cadastros públicos.';
+  }
+
+  if (normalized.includes('user already registered')) {
+    return 'Já existe uma conta com este e-mail.';
+  }
+
+  return 'Não foi possível criar a conta agora. Tente novamente em instantes.';
+}
+
 export async function login(formData: FormData) {
   const email = getRequired(formData, 'email');
   const password = getRequired(formData, 'password');
@@ -47,7 +65,7 @@ export async function signup(formData: FormData) {
     },
   });
 
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`/login?error=${encodeURIComponent(signupErrorMessage(error.message))}`);
 
   revalidatePath('/', 'layout');
   if (data.session) redirect('/onboarding');
